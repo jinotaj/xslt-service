@@ -9,7 +9,11 @@ group = "org.jirsak.service"
 repositories {
     mavenCentral()
     jcenter()
+    maven {
+        url 'https://maven-eu.nuxeo.org/nexus/content/repositories/public/'
+    }
 }
+
 
 micronaut {
     runtime("netty")
@@ -27,6 +31,16 @@ dependencies {
     implementation("javax.annotation:javax.annotation-api")
     implementation("io.micronaut:micronaut-http-client")
     runtimeOnly("ch.qos.logback:logback-classic")
+
+    implementation('net.sf.saxon:Saxon-HE:10.3')
+    implementation('org.apache.xmlgraphics:fop:2.5')
+    implementation('org.dom4j:dom4j:2.1.3') {
+        exclude group: 'pull-parser'
+        exclude group: 'xpp3'
+        exclude group: 'net.java.dev.msv'
+        exclude group: 'javax.xml.bind'
+        exclude group: 'javax.xml.stream'
+    }
 }
 
 
