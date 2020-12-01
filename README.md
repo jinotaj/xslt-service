@@ -1,4 +1,14 @@
-## Feature http-client documentation
+# XSLT service
+Microservice for performing XSLT transformations.
 
-- [Micronaut Micronaut HTTP Client documentation](https://docs.micronaut.io/latest/guide/index.html#httpClient)
+## Input formats:
+* XML
+* JSON
 
+## Output formats
+* XML
+* HTML5
+* PDF
+* JSON
+* TXT
+* SVG
