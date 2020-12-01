@@ -24,7 +24,12 @@ public class XmlService {
 
   public Document toDocument(TreeNode json, String root) {
     Document document = documentFactory.createDocument();
-    processNode(json, () -> document.addElement(root));
+    if (json.isArray()) {
+      Element rootElement = document.addElement(root);
+      processNode(json, () -> rootElement.addElement(root));
+    } else {
+      processNode(json, () -> document.addElement(root));
+    }
     return document;
   }
 
