@@ -1,10 +1,12 @@
 package org.jirsak.service.xslt.transformer;
 
 import net.sf.saxon.s9api.Destination;
+import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XsltExecutable;
 import net.sf.saxon.s9api.XsltTransformer;
 
 import javax.xml.transform.Source;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Deque;
 import java.util.Iterator;
@@ -17,6 +19,7 @@ import java.util.function.Function;
 public class TransformerFactory {
 	private final Deque<XsltExecutable> xslts = new LinkedList<>();
 	private Function<OutputStream, Destination> destinationFactory;
+	private String fileName;
 
 	public Transformer create() {
 		Iterator<XsltExecutable> executableIterator = xslts.iterator();
@@ -28,12 +31,7 @@ public class TransformerFactory {
 			previousTransformer = transformer;
 		}
 		XsltTransformer lastTransformer = previousTransformer;
-		return (Source source, OutputStream outputStream) -> {
-			Destination destination = destinationFactory.apply(outputStream);
-			firstTransformer.setSource(source);
-			lastTransformer.setDestination(destination);
-			firstTransformer.transform();
-		};
+		return new Transformer(fileName, destinationFactory, firstTransformer, lastTransformer);
 	}
 
 	public void appendXslt(XsltExecutable xsltExecutable) {
@@ -42,5 +40,9 @@ public class TransformerFactory {
 
 	public void setDestinationFactory(Function<OutputStream, Destination> destinationFactory) {
 		this.destinationFactory = destinationFactory;
+	}
+
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
 	}
 }

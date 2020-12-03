@@ -32,13 +32,13 @@ public class XsltController {
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_PDF)
   @Post("/{path}")
-  public HttpResponse<byte[]> fromJSON(@PathVariable String path, TreeNode json, @QueryValue(value = "root", defaultValue = "json") String root) throws IOException, SaxonApiException {
+  public HttpResponse<byte[]> fromJSON(@PathVariable String path, @Body TreeNode json, @QueryValue(value = "root", defaultValue = "json") String root) throws IOException, SaxonApiException {
     DocumentSource source = xmlService.toSource(json, root);
     ByteArrayOutputStream output = new ByteArrayOutputStream();
     Transformer transformer = transformerService.getTransformer(path);
     transformer.transform(source, output);
     return HttpResponse.created(output.toByteArray())
-        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"dokument.pdf\"");
+        .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition(transformer.getFileName()));
   }
 
   @Consumes(MediaType.APPLICATION_XML)
@@ -50,7 +50,7 @@ public class XsltController {
     Transformer transformer = transformerService.getTransformer(path);
     transformer.transform(source, output);
     return HttpResponse.created(output.toByteArray())
-        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"dokument.pdf\"");
+        .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition(transformer.getFileName()));
   }
 
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
@@ -66,13 +66,25 @@ public class XsltController {
     Transformer transformer = transformerService.getTransformer(path);
     transformer.transform(source, output);
     return HttpResponse.created(output.toByteArray())
-        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"dokument.pdf\"");
+        .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition(transformer.getFileName()));
   }
 
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_XML)
   @Post("/to-xml")
-  public String jsonToXML(TreeNode json, @QueryValue(value = "root", defaultValue = "json") String root) throws IOException {
+  public String jsonToXML(@Body TreeNode json, @QueryValue(value = "root", defaultValue = "json") String root) throws IOException {
     return xmlService.toDocument(json, root).asXML();
+  }
+
+  private String contentDisposition(String filename) {
+    StringBuilder builder = new StringBuilder();
+    builder.append("attachment");
+    if (filename != null) {
+      builder.append("; filename=");
+      builder.append('"');
+      builder.append(filename);
+      builder.append('"');
+    }
+    return builder.toString();
   }
 }

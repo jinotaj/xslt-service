@@ -79,6 +79,9 @@ public class TransformerService {
 			}
 
 			transformerFactory.appendXslt(xsltExecutable);
+
+			String fileName = serializationProperties.getProperty("{http://www.jirsak.org/2020/XSLT-service}file-name");
+			transformerFactory.setFileName(fileName);
 			return transformerFactory;
 		} catch (SaxonApiException | FileNotFoundException e) {
 			throw new RuntimeException(e);
