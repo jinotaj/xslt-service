@@ -5,6 +5,8 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.Nullable;
+import io.micronaut.core.io.Writable;
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
@@ -15,9 +17,13 @@ import org.jirsak.service.xslt.transformer.Transformer;
 import org.jirsak.service.xslt.transformer.TransformerService;
 import org.jirsak.service.xslt.xml.XmlService;
 
+import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
 
 @Controller
 public class XsltController {
@@ -32,40 +38,34 @@ public class XsltController {
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_PDF)
   @Post("/{path}")
-  public HttpResponse<byte[]> fromJSON(@PathVariable String path, @Body TreeNode json, @QueryValue(value = "root", defaultValue = "json") String root) throws IOException, SaxonApiException {
+  public HttpResponse<OutputStreamWritable> fromJSON(@PathVariable String path, @Body TreeNode json, @QueryValue(value = "root", defaultValue = "json") String root) throws IOException, SaxonApiException {
     DocumentSource source = xmlService.toSource(json, root);
-    ByteArrayOutputStream output = new ByteArrayOutputStream();
     Transformer transformer = transformerService.getTransformer(path);
-    transformer.transform(source, output);
-    return HttpResponse.created(output.toByteArray())
+    return HttpResponse.created(new OutputStreamWritable(source, transformer))
         .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition(transformer.getFileName()));
   }
 
   @Consumes(MediaType.APPLICATION_XML)
   @Produces(MediaType.APPLICATION_PDF)
   @Post("/{path}")
-  public HttpResponse<byte[]> fromXML(@PathVariable String path, @Body byte[] buffer) throws IOException, SaxonApiException {
+  public HttpResponse<OutputStreamWritable> fromXML(@PathVariable String path, @Body byte[] buffer) throws IOException, SaxonApiException {
     StreamSource source = xmlService.toSource(buffer);
-    ByteArrayOutputStream output = new ByteArrayOutputStream();
     Transformer transformer = transformerService.getTransformer(path);
-    transformer.transform(source, output);
-    return HttpResponse.created(output.toByteArray())
+    return HttpResponse.created(new OutputStreamWritable(source, transformer))
         .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition(transformer.getFileName()));
   }
 
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
   @Produces(MediaType.APPLICATION_PDF)
   @Post("/{path}")
-  public HttpResponse<byte[]> fromJSONForm(@PathVariable String path, String type, String data, String root) throws IOException, SaxonApiException {
+  public HttpResponse<OutputStreamWritable> fromJSONForm(@PathVariable String path, String type, String data, String root) throws IOException, SaxonApiException {
     ObjectMapper mapper = new ObjectMapper();
     JsonFactory factory = mapper.getFactory();
     JsonParser parser = factory.createParser(data);
     JsonNode json = mapper.readTree(parser);
     DocumentSource source = xmlService.toSource(json, root);
-    ByteArrayOutputStream output = new ByteArrayOutputStream();
     Transformer transformer = transformerService.getTransformer(path);
-    transformer.transform(source, output);
-    return HttpResponse.created(output.toByteArray())
+    return HttpResponse.created(new OutputStreamWritable(source, transformer))
         .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition(transformer.getFileName()));
   }
 
@@ -86,5 +86,29 @@ public class XsltController {
       builder.append('"');
     }
     return builder.toString();
+  }
+
+  private class OutputStreamWritable implements Writable {
+    private final Source source;
+    private final Transformer transformer;
+
+    private OutputStreamWritable(Source source, Transformer transformer) {
+      this.source = source;
+      this.transformer = transformer;
+    }
+
+    @Override
+    public void writeTo(Writer out) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void writeTo(OutputStream outputStream, @Nullable Charset charset) throws IOException {
+      try {
+        transformer.transform(source, outputStream);
+      } catch (SaxonApiException e) {
+        throw new IOException(e);
+      }
+    }
   }
 }

@@ -34,7 +34,8 @@ public class TransformerService {
 
 	public Transformer getTransformer(String uri) throws IOException {
 		Path path = computePath(uri);
-		TransformerFactory transformerFactory = transformerCache.computeIfAbsent(path, this::createTransformerFactory);
+//		TransformerFactory transformerFactory = transformerCache.computeIfAbsent(path, this::createTransformerFactory);
+		TransformerFactory transformerFactory = this.createTransformerFactory(path);
 		return transformerFactory.create();
 	}
 
