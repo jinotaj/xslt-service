@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ValueNode;
 import org.dom4j.Document;
 import org.dom4j.DocumentFactory;
 import org.dom4j.Element;
+import org.dom4j.QName;
 import org.dom4j.io.DocumentSource;
 
 import javax.inject.Provider;
@@ -18,6 +19,7 @@ import java.util.Iterator;
 public class XmlService {
 
   private final DocumentFactory documentFactory = DocumentFactory.getInstance();
+  private final QName XSI_NIL = QName.get("nil", "xsi", "http://www.w3.org/2001/XMLSchema-instance");
 
   public StreamSource toSource(byte[] buffer) {
     return new StreamSource(new ByteArrayInputStream(buffer));
@@ -53,10 +55,12 @@ public class XmlService {
         processNode(node, () -> element.addElement(name));
       }
     } else {
+      Element element = elementProvider.get();
       ValueNode valueNode = (ValueNode) json;
       if (!(valueNode instanceof NullNode)) {
-        Element element = elementProvider.get();
         element.setText(valueNode.asText());
+      } else {
+        element.addAttribute(XSI_NIL, "true");
       }
     }
   }

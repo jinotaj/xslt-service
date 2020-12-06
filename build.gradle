@@ -3,7 +3,7 @@ plugins {
     id("io.micronaut.application") version "1.2.0"
 }
 
-version = "0.3"
+version = "0.4"
 group = "org.jirsak.service"
 
 repositories {
