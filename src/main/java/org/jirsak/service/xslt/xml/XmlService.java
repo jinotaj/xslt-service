@@ -1,6 +1,7 @@
 package org.jirsak.service.xslt.xml;
 
 import com.fasterxml.jackson.core.TreeNode;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ValueNode;
 import org.dom4j.Document;
 import org.dom4j.DocumentFactory;
@@ -52,9 +53,11 @@ public class XmlService {
         processNode(node, () -> element.addElement(name));
       }
     } else {
-      Element element = elementProvider.get();
       ValueNode valueNode = (ValueNode) json;
-      element.setText(valueNode.asText());
+      if (!(valueNode instanceof NullNode)) {
+        Element element = elementProvider.get();
+        element.setText(valueNode.asText());
+      }
     }
   }
 }
