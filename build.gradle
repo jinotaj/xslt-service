@@ -24,6 +24,11 @@ micronaut {
     }
 }
 
+dockerfile  {
+    instruction 'RUN mkdir /home/app/data'
+    instruction 'VOLUME /home/app/data'
+}
+
 dependencies {
     compileOnly("org.graalvm.nativeimage:svm")
     implementation("io.micronaut:micronaut-validation")
