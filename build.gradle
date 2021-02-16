@@ -13,7 +13,6 @@ repositories {
     }
 }
 
-
 micronaut {
     version '2.3.2'
     runtime('netty')
@@ -30,7 +29,7 @@ dockerfile  {
 }
 
 dockerBuild {
-    images = ['filipjirsak/xslt-service:$project.version']
+    images = ["filipjirsak/xslt-service:$project.version", "filipjirsak/xslt-service:latest"]
 }
 
 dependencies {
