@@ -16,11 +16,11 @@ repositories {
 
 micronaut {
     version '2.3.2'
-    runtime("netty")
-    testRuntime("junit5")
+    runtime('netty')
+    testRuntime('junit5')
     processing {
         incremental(true)
-        annotations("org.jirsak.service.*")
+        annotations('org.jirsak.service.*')
     }
 }
 
@@ -30,7 +30,7 @@ dockerfile  {
 }
 
 dockerBuild {
-    images = ["v1/filipjirsak/xslt-service:$project.version"]
+    images = ['filipjirsak/xslt-service:$project.version']
 }
 
 dependencies {
