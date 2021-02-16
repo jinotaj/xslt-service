@@ -24,24 +24,13 @@ micronaut {
     }
 }
 
-if (project.hasProperty('DOCKER_HUB_ACCESS_TOKEN')) {
-    docker {
-        registryCredentials {
-            url = 'https://index.docker.io/v1/'
-            username = 'filipjirsak'
-            password = "${project.DOCKER_HUB_ACCESS_TOKEN}"
-            email = 'filip@jirsak.org'
-        }
-    }
-}
-
 dockerfile  {
     runCommand 'mkdir /home/app/data'
     volume '/home/app/data'
 }
 
 dockerBuild {
-    images = ["docker.io/filipjirsak/xslt-service:$project.version"]
+    images = ["v1/filipjirsak/xslt-service:$project.version"]
 }
 
 dependencies {
