@@ -37,7 +37,7 @@ public class XsltController {
 
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_PDF)
-  @Post("/{path}")
+  @Post("/{+path}")
   public HttpResponse<OutputStreamWritable> fromJSON(@PathVariable String path, @Body TreeNode json, @QueryValue(value = "root", defaultValue = "json") String root) throws IOException, SaxonApiException {
     DocumentSource source = xmlService.toSource(json, root);
     Transformer transformer = transformerService.getTransformer(path);
@@ -47,7 +47,7 @@ public class XsltController {
 
   @Consumes(MediaType.APPLICATION_XML)
   @Produces(MediaType.APPLICATION_PDF)
-  @Post("/{path}")
+  @Post("/{+path}")
   public HttpResponse<OutputStreamWritable> fromXML(@PathVariable String path, @Body byte[] buffer) throws IOException, SaxonApiException {
     StreamSource source = xmlService.toSource(buffer);
     Transformer transformer = transformerService.getTransformer(path);
@@ -57,7 +57,7 @@ public class XsltController {
 
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
   @Produces(MediaType.APPLICATION_PDF)
-  @Post("/{path}")
+  @Post("/{+path}")
   public HttpResponse<OutputStreamWritable> fromJSONForm(@PathVariable String path, String type, String data, String root) throws IOException, SaxonApiException {
     ObjectMapper mapper = new ObjectMapper();
     JsonFactory factory = mapper.getFactory();
