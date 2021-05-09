@@ -20,76 +20,86 @@ import java.util.concurrent.ConcurrentMap;
  */
 @Singleton
 public class TransformerService {
-	private final Path root;
-	private final FopService fopService;
-	private final SaxonService saxonService;
-	private final ConcurrentMap<Path, TransformerFactory> transformerCache;
+  private static final String NS_JINOTAJ = "https://jinotaj.org/2020/XSLT-service";
+  private static final String NS_JINOTAJ_CLARK = '{' + NS_JINOTAJ + '}';
+  private final Path root;
+  private final FopService fopService;
+  private final SaxonService saxonService;
+  private final ConcurrentMap<Path, TransformerFactory> transformerCache;
 
-	public TransformerService(TransformerConfig configuration, SaxonService saxonService, FopService fopService) {
-		this.saxonService = saxonService;
-		this.fopService = fopService;
-		this.root = configuration.getRoot().normalize().toAbsolutePath();
-		this.transformerCache = new ConcurrentHashMap<>();
-	}
+  public TransformerService(TransformerConfig configuration, SaxonService saxonService, FopService fopService) {
+    this.saxonService = saxonService;
+    this.fopService = fopService;
+    this.root = configuration.getRoot().normalize().toAbsolutePath();
+    this.transformerCache = new ConcurrentHashMap<>();
+  }
 
-	public Transformer getTransformer(String uri) throws IOException {
-		Path path = computePath(uri);
+  public Transformer getTransformer(String uri) throws IOException {
+    Path path = computePath(uri);
 //		TransformerFactory transformerFactory = transformerCache.computeIfAbsent(path, this::createTransformerFactory);
-		TransformerFactory transformerFactory = this.createTransformerFactory(path);
-		return transformerFactory.create();
-	}
+    TransformerFactory transformerFactory = this.createTransformerFactory(path);
+    return transformerFactory.create();
+  }
 
-	private Path computePath(String uri) throws IOException {
-		Path path = root.resolve(uri).normalize();
-		if (!path.startsWith(root)) {
-			throw new FileNotFoundException(uri);
-		}
-		return path;
-	}
+  private Path computePath(String uri) throws IOException {
+    Path path = root.resolve(uri).normalize();
+    if (!path.startsWith(root)) {
+      throw new FileNotFoundException(uri);
+    }
+    return path;
+  }
 
-	private TransformerFactory createTransformerFactory(Path path) {
-		try {
-			Path parent = path.getParent();
-			String name = path.getFileName().toString();
-			Path pathWithExtension;
-			Iterator<String> extensionIterator = Arrays.asList("xslt", "xsl").iterator();
-			do {
-				pathWithExtension = pathWithExtension(parent, name, extensionIterator.next());
-			} while (Files.notExists(pathWithExtension) && extensionIterator.hasNext());
-			if (Files.notExists(pathWithExtension)) {
-				throw new FileNotFoundException();
-			}
+  private TransformerFactory createTransformerFactory(Path path) {
+    try {
+      Path parent = path.getParent();
+      String name = path.getFileName().toString();
+      Path pathWithExtension;
+      Iterator<String> extensionIterator = Arrays.asList("xslt", "xsl").iterator();
+      do {
+        pathWithExtension = pathWithExtension(parent, name, extensionIterator.next());
+      } while (Files.notExists(pathWithExtension) && extensionIterator.hasNext());
+      if (Files.notExists(pathWithExtension)) {
+        throw new FileNotFoundException();
+      }
+      Path xsltPath = pathWithExtension;
 
-			TransformerFactory transformerFactory = new TransformerFactory();
+      TransformerFactory transformerFactory = new TransformerFactory();
 
-			XsltExecutable xsltExecutable = saxonService.createXsltExecutable(pathWithExtension);
-			SerializationProperties serializationProperties = xsltExecutable.getUnderlyingCompiledStylesheet().getPrimarySerializationProperties();
-			if (MediaType.APPLICATION_PDF.equals(serializationProperties.getProperty("media-type"))) {
-				transformerFactory.setDestinationFactory(fopService::createFopDestination);
-			} else {
-				transformerFactory.setDestinationFactory(saxonService::createSerializer);
-			}
+      XsltExecutable xsltExecutable = saxonService.createXsltExecutable(xsltPath);
+      SerializationProperties serializationProperties = xsltExecutable.getUnderlyingCompiledStylesheet().getPrimarySerializationProperties();
+      if (MediaType.APPLICATION_PDF.equals(serializationProperties.getProperty("media-type"))) {
+        transformerFactory.setDestinationFactory(outputStream -> fopService.createFopDestination(outputStream, xsltPath));
+      } else {
+        transformerFactory.setDestinationFactory(saxonService::createSerializer);
+      }
 
-			String previousTemplates = serializationProperties.getProperty("{http://www.jirsak.org/2020/XSLT-service}previous-templates");
-			if (previousTemplates != null) {
-				for (String file : previousTemplates.split("\\s*,\\s*")) {
-					Path prevPath = parent.resolve(file);
-					XsltExecutable prevXsltExecutable = saxonService.createXsltExecutable(prevPath);
-					transformerFactory.appendXslt(prevXsltExecutable);
-				}
-			}
+      String previousTemplates = serializationProperties.getProperty(NS_JINOTAJ_CLARK + "previous-templates");
+      appendTemplates(parent, transformerFactory, previousTemplates);
 
-			transformerFactory.appendXslt(xsltExecutable);
+      transformerFactory.appendXslt(xsltExecutable);
 
-			String fileName = serializationProperties.getProperty("{http://www.jirsak.org/2020/XSLT-service}file-name");
-			transformerFactory.setFileName(fileName);
-			return transformerFactory;
-		} catch (SaxonApiException | FileNotFoundException e) {
-			throw new RuntimeException(e);
-		}
-	}
+      String nextTemplates = serializationProperties.getProperty(NS_JINOTAJ_CLARK + "next-templates");
+      appendTemplates(parent, transformerFactory, nextTemplates);
 
-	private Path pathWithExtension(Path parent, String name, String extension) {
-		return parent.resolve(name + '.' + extension);
-	}
+      String fileName = serializationProperties.getProperty(NS_JINOTAJ_CLARK + "file-name");
+      transformerFactory.setFileName(fileName);
+      return transformerFactory;
+    } catch (SaxonApiException | FileNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void appendTemplates(Path parent, TransformerFactory transformerFactory, String templates) throws SaxonApiException {
+    if (templates != null) {
+      for (String file : templates.split("\\s*,\\s*")) {
+        Path path = parent.resolve(file);
+        XsltExecutable prevXsltExecutable = saxonService.createXsltExecutable(path);
+        transformerFactory.appendXslt(prevXsltExecutable);
+      }
+    }
+  }
+
+  private Path pathWithExtension(Path parent, String name, String extension) {
+    return parent.resolve(name + '.' + extension);
+  }
 }
