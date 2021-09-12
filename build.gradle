@@ -25,6 +25,7 @@ micronaut {
 dockerfile  {
     runCommand 'mkdir /home/app/data'
     volume '/home/app/data'
+    args '-Djava.awt.headless=true'
 }
 
 dockerBuild {
