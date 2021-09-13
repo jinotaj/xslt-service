@@ -1,5 +1,8 @@
 name: Push to Docker Hub
-on: [push]
+on:
+  push:
+    tags:
+      - version-*
 jobs:
   build:
     runs-on: ubuntu-latest
