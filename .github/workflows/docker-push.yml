@@ -21,6 +21,6 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew --no-daemon dockerBuild
       - name: Docker Push :version
-        run: docker image push filipjirsak/xslt-service:0.5.1
+        run: docker image push filipjirsak/xslt-service:0.5.2
       - name: Docker Push :latest
         run: docker image push filipjirsak/xslt-service:latest
